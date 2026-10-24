@@ -1,5 +1,11 @@
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
+
 import {
   getHerbs,
   searchHerbs
@@ -10,57 +16,77 @@ export function useHerbs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadHerbs = useCallback(async (signal) => {
-    setLoading(true);
-    setError("");
+  const controllerRef = useRef(null);
+  const requestIdRef = useRef(0);
 
-    try {
-      const data = await getHerbs(signal);
-      setHerbs(data);
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        setError(err.message || "Gagal mengambil data herbal");
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
+  const cancelRequest = useCallback(() => {
+    requestIdRef.current += 1;
+
+    controllerRef.current?.abort();
+    controllerRef.current = null;
   }, []);
 
-  useEffect(() => {
+  const executeRequest = useCallback(async (requestFunction) => {
+    cancelRequest();
+
     const controller = new AbortController();
+    const requestId = requestIdRef.current;
 
-    loadHerbs(controller.signal);
-
-    return () => controller.abort();
-  }, [loadHerbs]);
-
-  const search = async (query) => {
-    const controller = new AbortController();
+    controllerRef.current = controller;
 
     setLoading(true);
     setError("");
 
     try {
-      const data = await searchHerbs(
-        query,
-        controller.signal
-      );
+      const data = await requestFunction(controller.signal);
+
+      if (
+        controller.signal.aborted ||
+        requestId !== requestIdRef.current
+      ) {
+        return;
+      }
 
       setHerbs(data);
     } catch (err) {
-      setError(err.message || "Pencarian gagal");
+      if (
+        err.name !== "AbortError" &&
+        requestId === requestIdRef.current
+      ) {
+        setError(
+          err.message || "Terjadi kesalahan saat mengambil data."
+        );
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        controllerRef.current = null;
+      }
     }
-  };
+  }, [cancelRequest]);
+
+  const reload = useCallback(() => {
+    return executeRequest((signal) => getHerbs(signal));
+  }, [executeRequest]);
+
+  const search = useCallback((query) => {
+    return executeRequest((signal) => searchHerbs(query, signal));
+  }, [executeRequest]);
+
+  useEffect(() => {
+    reload();
+
+    return () => {
+      cancelRequest();
+    };
+  }, [reload, cancelRequest]);
 
   return {
     herbs,
     loading,
     error,
     search,
-    reload: loadHerbs
+    reload,
+    cancelRequest
   };
 }

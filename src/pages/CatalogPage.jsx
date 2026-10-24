@@ -1,9 +1,15 @@
 
+import { useState } from "react";
+
 import { useHerbs } from "../hooks/useHerbs";
+
 import HerbSearch from "../components/herbal/HerbSearch";
 import HerbGrid from "../components/herbal/HerbGrid";
+
 import Loading from "../components/common/Loading";
 import ErrorMessage from "../components/common/ErrorMessage";
+
+import { validateSearch } from "../utils/validation";
 
 export default function CatalogPage() {
   const {
@@ -13,6 +19,21 @@ export default function CatalogPage() {
     search,
     reload
   } = useHerbs();
+
+  const [validationError, setValidationError] = useState("");
+
+  async function handleSearch(query) {
+    const validation = validateSearch(query);
+
+    if (validation) {
+      setValidationError(validation);
+      return;
+    }
+
+    setValidationError("");
+
+    await search(query.trim());
+  }
 
   return (
     <section className="section">
@@ -29,14 +50,20 @@ export default function CatalogPage() {
         </p>
       </div>
 
-      <HerbSearch onSearch={search} />
+      <HerbSearch onSearch={handleSearch} />
+
+      {validationError && (
+        <p className="validation-error" role="alert">
+          {validationError}
+        </p>
+      )}
 
       {loading && <Loading />}
 
-      {error && (
+      {!loading && error && (
         <ErrorMessage
           message={error}
-          onRetry={() => reload()}
+          onRetry={reload}
         />
       )}
 

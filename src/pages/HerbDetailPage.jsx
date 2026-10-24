@@ -1,7 +1,18 @@
 
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getHerbById } from "../services/herbService";
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Link,
+  useParams
+} from "react-router-dom";
+
+import {
+  getHerbById
+} from "../services/herbService";
+
 import Loading from "../components/common/Loading";
 import ErrorMessage from "../components/common/ErrorMessage";
 
@@ -18,6 +29,7 @@ export default function HerbDetailPage() {
     async function loadHerb() {
       setLoading(true);
       setError("");
+      setHerb(null);
 
       try {
         const data = await getHerbById(
@@ -25,10 +37,14 @@ export default function HerbDetailPage() {
           controller.signal
         );
 
-        setHerb(data);
+        if (!controller.signal.aborted) {
+          setHerb(data);
+        }
       } catch (err) {
         if (err.name !== "AbortError") {
-          setError(err.message);
+          setError(
+            err.message || "Gagal mengambil detail herbal."
+          );
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -39,7 +55,9 @@ export default function HerbDetailPage() {
 
     loadHerb();
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [id]);
 
   if (loading) {
@@ -47,11 +65,27 @@ export default function HerbDetailPage() {
   }
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <section className="section">
+        <ErrorMessage message={error} />
+
+        <Link to="/catalog">
+          Kembali ke katalog
+        </Link>
+      </section>
+    );
   }
 
   if (!herb) {
-    return <p>Herbal tidak ditemukan.</p>;
+    return (
+      <section className="section">
+        <h1>Herbal tidak ditemukan</h1>
+
+        <Link to="/catalog">
+          Kembali ke katalog
+        </Link>
+      </section>
+    );
   }
 
   return (
@@ -95,8 +129,8 @@ export default function HerbDetailPage() {
       </div>
 
       <p className="disclaimer">
-        Informasi ini bersifat edukatif dan bukan pengganti
-        diagnosis atau pengobatan profesional.
+        Informasi ini bersifat edukatif dan bukan
+        pengganti diagnosis atau pengobatan profesional.
       </p>
     </section>
   );
