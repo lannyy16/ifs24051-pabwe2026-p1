@@ -1,111 +1,60 @@
-
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
-  Navigate
+  Navigate,
+  useLocation,
 } from "react-router-dom";
 
-import {
-  AuthProvider,
-  useAuth
-} from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 
-import Navbar from "./components/Navbar";
+import Layout from "./components/layout/Layout.jsx";
 
-import Home from "./pages/Home.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import CatalogPage from "./pages/CatalogPage.jsx";
+import HerbDetailPage from "./pages/HerbDetailPage.jsx";
+import FinderPage from "./pages/FinderPage.jsx";
+import ArticlePage from "./pages/ArticlePage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 
-// ========================================
-// PROTECTED ROUTE
-// Halaman hanya bisa diakses jika sudah login
-// ========================================
+// Kembali ke atas setiap kali pindah halaman
+function ScrollToTop() {
+  const { pathname } = useLocation();
 
-function ProtectedRoute({ children }) {
-  const { user } = useAuth();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+  return null;
 }
-
-// ========================================
-// PUBLIC ROUTE
-// Login dan Register hanya untuk pengguna
-// yang belum login
-// ========================================
-
-function PublicRoute({ children }) {
-  const { user } = useAuth();
-
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-}
-
-// ========================================
-// APP ROUTES
-// ========================================
 
 function AppRoutes() {
   return (
-    <>
-      <Navbar />
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/catalog" element={<CatalogPage />} />
+        <Route path="/herbs/:id" element={<HerbDetailPage />} />
+        <Route path="/finder" element={<FinderPage />} />
+        <Route path="/article" element={<ArticlePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Route>
 
-      <Routes>
-        {/* HALAMAN UTAMA */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* HALAMAN LOGIN */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-
-        {/* HALAMAN REGISTER */}
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
-
-        {/* HALAMAN TIDAK DITEMUKAN */}
-        <Route
-          path="*"
-          element={<Navigate to="/" replace />}
-        />
-      </Routes>
-    </>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
-
-// ========================================
-// MAIN APP
-// ========================================
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ScrollToTop />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
