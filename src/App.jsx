@@ -2,61 +2,112 @@
 import {
   BrowserRouter,
   Routes,
-  Route
+  Route,
+  Navigate
 } from "react-router-dom";
 
-import Layout from "./components/layout/Layout";
+import {
+  AuthProvider,
+  useAuth
+} from "./context/AuthContext";
 
-import HomePage from "./pages/HomePage";
-import CatalogPage from "./pages/CatalogPage";
-import FinderPage from "./pages/FinderPage";
-import ArticlePage from "./pages/ArticlePage";
-import DashboardPage from "./pages/DashboardPage";
-import HerbDetailPage from "./pages/HerbDetailPage";
+import Navbar from "./components/Navbar";
+
+import Home from "./pages/Home.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
+
+// ========================================
+// PROTECTED ROUTE
+// Halaman hanya bisa diakses jika sudah login
+// ========================================
+
+function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+// ========================================
+// PUBLIC ROUTE
+// Login dan Register hanya untuk pengguna
+// yang belum login
+// ========================================
+
+function PublicRoute({ children }) {
+  const { user } = useAuth();
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+// ========================================
+// APP ROUTES
+// ========================================
+
+function AppRoutes() {
+  return (
+    <>
+      <Navbar />
+
+      <Routes>
+        {/* HALAMAN UTAMA */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* HALAMAN LOGIN */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        {/* HALAMAN REGISTER */}
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+
+        {/* HALAMAN TIDAK DITEMUKAN */}
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
+      </Routes>
+    </>
+  );
+}
+
+// ========================================
+// MAIN APP
+// ========================================
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<HomePage />} />
-
-          <Route
-            path="/catalog"
-            element={<CatalogPage />}
-          />
-
-          <Route
-            path="/finder"
-            element={<FinderPage />}
-          />
-
-          <Route
-            path="/article"
-            element={<ArticlePage />}
-          />
-
-          <Route
-            path="/dashboard"
-            element={<DashboardPage />}
-          />
-
-          <Route
-            path="/herbs/:id"
-            element={<HerbDetailPage />}
-          />
-
-          <Route
-            path="*"
-            element={
-              <div className="section">
-                <h1>404</h1>
-                <p>Halaman tidak ditemukan.</p>
-              </div>
-            }
-          />
-        </Route>
-      </Routes>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

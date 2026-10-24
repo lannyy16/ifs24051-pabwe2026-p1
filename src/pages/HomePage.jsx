@@ -1,67 +1,132 @@
 
-import { Link } from "react-router-dom";
-import { useHerbs } from "../hooks/useHerbs";
-import HerbGrid from "../components/herbal/HerbGrid";
-import Loading from "../components/common/Loading";
-import ErrorMessage from "../components/common/ErrorMessage";
+import { useEffect, useState } from "react";
 
-export default function HomePage() {
-  const { herbs, loading, error, reload } = useHerbs();
+export default function Home() {
+  const [herbs, setHerbs] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchHerbs() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `/api/herbs?search=${encodeURIComponent(search)}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Gagal mengambil data herbal.");
+        }
+
+        const result = await response.json();
+
+        setHerbs(result.data || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHerbs();
+  }, [search]);
 
   return (
-    <div>
+    <main className="home-page">
       <section className="hero">
         <div className="hero-content">
           <span className="hero-label">
-            🌿 HERBAL NUSANTARA
+            🌿 HERBANUSANTARA
           </span>
 
           <h1>
-            Mengenal Alam,
+            Temukan Kebaikan
             <br />
-            Menjaga Pengetahuan.
+            <span>Tanaman Herbal</span>
           </h1>
 
           <p>
-            Jelajahi tanaman herbal Nusantara,
-            kenali manfaat tradisional, bukti penelitian,
-            dan informasi keamanannya.
+            Kenali berbagai tanaman herbal Indonesia,
+            manfaat tradisional, dan informasi ilmiahnya.
           </p>
 
-          <Link to="/catalog" className="primary-button">
-            Jelajahi Herbal →
-          </Link>
+          <div className="hero-search">
+            <input
+              type="search"
+              placeholder="Cari tanaman herbal..."
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+            />
+          </div>
         </div>
       </section>
 
-      <section className="section">
+      <section className="herb-section">
         <div className="section-heading">
           <div>
             <span className="section-label">
-              KATALOG HERBAL
+              ENSIKLOPEDIA HERBAL
             </span>
 
-            <h2>Kenali tanaman herbal</h2>
+            <h2>Jelajahi Tanaman Herbal</h2>
           </div>
 
-          <Link to="/catalog">
-            Lihat Semua →
-          </Link>
+          <span className="herb-count">
+            {herbs.length} tanaman
+          </span>
         </div>
 
-        {loading && <Loading />}
+        {loading && (
+          <p className="status-message">
+            Memuat data herbal...
+          </p>
+        )}
 
         {error && (
-          <ErrorMessage
-            message={error}
-            onRetry={() => reload()}
-          />
+          <div className="error-box">
+            <p>{error}</p>
+            <p>
+              Pastikan backend Express berjalan di
+              localhost:3000.
+            </p>
+          </div>
         )}
 
-        {!loading && !error && (
-          <HerbGrid herbs={herbs.slice(0, 3)} />
+        {!loading && !error && herbs.length === 0 && (
+          <p className="status-message">
+            Tanaman herbal tidak ditemukan.
+          </p>
         )}
+
+        <div className="herb-grid">
+          {herbs.map((herb) => (
+            <article className="herb-card" key={herb.id}>
+              <div className="herb-card-icon">
+                🌿
+              </div>
+
+              <span className="herb-category">
+                {herb.category || "Tanaman Herbal"}
+              </span>
+
+              <h3>{herb.name}</h3>
+
+              <p className="herb-latin">
+                {herb.latin}
+              </p>
+
+              <p className="herb-description">
+                {herb.desc}
+              </p>
+            </article>
+          ))}
+        </div>
       </section>
-    </div>
+    </main>
   );
 }
