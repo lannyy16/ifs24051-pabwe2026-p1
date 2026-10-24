@@ -1,3 +1,4 @@
+
 {
   "name": "herbanusantara-fullstack",
   "version": "1.1.0",
@@ -13,6 +14,8 @@
     "start": "npm --prefix backend start",
     "start:backend": "npm --prefix backend start",
     "test": "npm --prefix frontend run test",
-    "test:frontend": "npm --prefix frontend run test"
+    "test:frontend": "npm --prefix frontend run test",
+    "test:coverage": "npm --prefix frontend run test:coverage",
+    "build:all": "npm --prefix frontend run build && npm --prefix backend run build"
   }
 }
