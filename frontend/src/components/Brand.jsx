@@ -7,7 +7,6 @@ export default function Brand({ onClick }) {
       className="brand"
       type="button"
       onClick={onClick}
-      aria-label="HerbaNusantara KENALI KEKAYAAN HERBAL, kembali ke beranda"
     >
       <span className="logo" aria-hidden="true">
         <Leaf />
