@@ -153,7 +153,7 @@ export default function AuthPage({ mode, onSubmit, error, onSwitch }) {
         </p>
 
         <p className="auth-disclaimer">
-          Mode demo: akun hanya tersimpan di memori selama aplikasi berjalan.
+          Mode demo: akun hanya tersimpan di browser ini (kata sandi di-hash).
           Jangan gunakan kata sandi asli.
         </p>
       </div>

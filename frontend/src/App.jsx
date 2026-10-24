@@ -12,6 +12,37 @@ import AuthPage from "./pages/AuthPage.jsx";
 
 const USER_STORAGE_KEY = "herbanusantara-demo-user";
 const SAVED_STORAGE_KEY = "herbanusantara-saved-herbs";
+const ACCOUNTS_STORAGE_KEY = "herbanusantara-demo-accounts";
+
+// Pemetaan halaman <-> URL agar halaman bisa dibuka langsung lewat path (mis. /auth/login)
+const ROUTES = {
+  "Beranda": "/",
+  "Katalog Herbal": "/katalog",
+  "Herbal Finder": "/finder",
+  "Artikel": "/artikel",
+  "Dashboard": "/dashboard",
+  "Masuk": "/auth/login",
+  "Daftar": "/auth/register",
+};
+const PATH_TO_PAGE = {
+  ...Object.fromEntries(Object.entries(ROUTES).map(([name, path]) => [path, name])),
+  "/login": "Masuk",
+  "/register": "Daftar",
+};
+function pageFromPath(pathname) {
+  const clean = (pathname || "/").toLowerCase().replace(/\/+$/, "") || "/";
+  return PATH_TO_PAGE[clean] || "Beranda";
+}
+async function hashPassword(password) {
+  if (!globalThis.crypto?.subtle) return password;
+  const bytes = new TextEncoder().encode(password);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function readAccounts() {
+  try { const value = JSON.parse(localStorage.getItem(ACCOUNTS_STORAGE_KEY) || "[]"); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+}
 function readSessionUser() {
   try { return JSON.parse(sessionStorage.getItem(USER_STORAGE_KEY) || "null"); }
   catch { return null; }
@@ -22,22 +53,30 @@ function readSavedIds() {
 }
 
 export default function App() {
-  const [page, setPage] = useState("Beranda");
+  const [page, setPage] = useState(() => pageFromPath(window.location.pathname));
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Semua");
   const [selectedHerb, setSelectedHerb] = useState(null);
   const [user, setUser] = useState(readSessionUser);
   const [savedIds, setSavedIds] = useState(readSavedIds);
-  const [accounts, setAccounts] = useState([]);
+  const [accounts, setAccounts] = useState(readAccounts);
   const [authError, setAuthError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const { herbs, loading, error } = useHerbs(search, reloadKey);
 
   useEffect(() => { localStorage.setItem(SAVED_STORAGE_KEY, JSON.stringify(savedIds)); }, [savedIds]);
+  useEffect(() => { localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts)); }, [accounts]);
+  useEffect(() => {
+    const onPopState = () => { setPage(pageFromPath(window.location.pathname)); setSelectedHerb(null); setAuthError(""); };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
   useEffect(() => { if (selectedHerb) setSelectedHerb(herbs.find((item) => item.id === selectedHerb.id) || selectedHerb); }, [herbs, selectedHerb]);
 
   const navigate = useCallback((nextPage, nextCategory) => {
     setPage(nextPage);
+    const nextPath = ROUTES[nextPage] || "/";
+    if (window.location.pathname !== nextPath) window.history.pushState({}, "", nextPath);
     setSelectedHerb(null);
     setAuthError("");
     if (nextPage === "Katalog Herbal") {
@@ -51,22 +90,24 @@ export default function App() {
     setSavedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }, []);
 
-  const handleAuth = useCallback((form) => {
+  const handleAuth = useCallback(async (form) => {
     setAuthError("");
     if (!form.email || !/^\S+@\S+\.\S+$/.test(form.email)) { setAuthError("Masukkan alamat email yang valid."); return; }
     if (page === "Daftar") {
       if (form.name.length < 2) { setAuthError("Nama minimal 2 karakter."); return; }
       if (form.password.length < 8) { setAuthError("Kata sandi harus minimal 8 karakter."); return; }
       if (form.password !== form.confirmation) { setAuthError("Konfirmasi kata sandi tidak cocok."); return; }
-      if (accounts.some((account) => account.email === form.email)) { setAuthError("Email sudah terdaftar pada sesi demo ini."); return; }
-      setAccounts((current) => [...current, { name: form.name, email: form.email, password: form.password }]);
+      if (accounts.some((account) => account.email === form.email)) { setAuthError("Email sudah terdaftar pada browser ini."); return; }
+      const passwordHash = await hashPassword(form.password);
+      setAccounts((current) => [...current, { name: form.name, email: form.email, passwordHash }]);
       setUser({ name: form.name, email: form.email });
       sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ name: form.name, email: form.email }));
       navigate("Dashboard");
       return;
     }
-    const account = accounts.find((item) => item.email === form.email && item.password === form.password);
-    if (!account) { setAuthError("Akun tidak ditemukan pada sesi demo ini. Silakan daftar terlebih dahulu."); return; }
+    const passwordHash = await hashPassword(form.password);
+    const account = accounts.find((item) => item.email === form.email && item.passwordHash === passwordHash);
+    if (!account) { setAuthError("Email atau kata sandi salah. Jika belum punya akun, silakan daftar terlebih dahulu."); return; }
     const nextUser = { name: account.name, email: account.email };
     setUser(nextUser);
     sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
