@@ -1,19 +1,69 @@
-# HerbaNusantara — React (P4)\n\nStarter website edukasi herbal menggunakan React + Vite, disusun mengikuti workflow praktikum ReactJS pada dokumen P4 (workspace, package, source `src`, menjalankan dev server).\n\n## Menjalankan di VS Code\n1. Extract ZIP dan buka folder `HerbaNusantara-React`.\n2. Buka terminal di folder proyek.\n3. Jalankan `bun install` (atau `npm install`).\n4. Jalankan `bun run dev` (atau `npm run dev`).\n5. Buka URL localhost yang ditampilkan Vite.\n\n## Build\n`bun run build` / `npm run build`\n\n## Struktur\n- `src/main.jsx` — entry React\n- `src/App.jsx` — halaman, navigasi, katalog, finder, dashboard, detail herbal\n- `src/data.js` — data contoh herbal\n- `src/style.css` — tampilan responsif\n\nData masih contoh lokal; favorit disimpan selama halaman aktif, belum backend. Informasi herbal untuk edukasi, bukan diagnosis atau saran pengobatan.\n
+# HerbaNusantara — React + Vite + Express
 
-## Struktur `src` (dibuat lebih terorganisasi untuk presentasi)
+Proyek ini merupakan versi refactor untuk meningkatkan struktur folder, clean code, best practice, dan separation of concerns.
 
-```text
-src/
-├── components/
-│   └── layout/          # ruang komponen layout reusable
-├── data/
-│   └── herbs.js         # data contoh tanaman herbal
-├── pages/
-│   └── App.jsx          # halaman dan navigasi prototipe
-├── styles/
-│   └── global.css       # gaya global website
-├── utils/               # ruang helper
-└── main.jsx             # entry point React
+## Kebutuhan
+- Node.js 20+ (atau versi Node yang mendukung Vite yang terpasang)
+- npm atau Bun
+
+## Menjalankan proyek di VS Code
+
+### 1. Install dependency frontend
+Dari terminal pada folder utama proyek:
+```bash
+npm install
 ```
 
-Versi ini mengatur ulang file sumber agar lebih mudah dijelaskan. Fitur dan tampilan utama tetap berasal dari prototipe sebelumnya.
+### 2. Install dependency backend
+Buka terminal kedua:
+```bash
+cd backend
+npm install
+```
+
+### 3. Jalankan backend
+Di terminal backend:
+```bash
+npm run dev
+```
+API akan berjalan pada `http://localhost:3000`.
+
+### 4. Jalankan frontend
+Di terminal baru, kembali ke folder utama proyek:
+```bash
+npm run dev
+```
+Buka URL yang diberikan Vite, biasanya `http://localhost:5173`.
+
+## Endpoint API
+- `GET /api/health` — status API
+- `GET /api/herbs` — semua tanaman
+- `GET /api/herbs?search=jahe` — pencarian tanaman
+- `GET /api/herbs/1` — detail tanaman dengan ID 1
+
+Frontend menggunakan proxy Vite dari `/api` ke backend port 3000.
+
+## Struktur penting
+- `src/App.jsx` — komposisi halaman dan state tingkat aplikasi
+- `src/pages/` — halaman beranda, katalog, finder, artikel, dashboard, autentikasi
+- `src/components/` — navbar, footer, kartu herbal, detail herbal
+- `src/hooks/useHerbs.js` — fetch data, loading, error, dan pembatalan request
+- `src/services/herbService.js` — komunikasi frontend dengan API
+- `backend/controllers/` — handler HTTP
+- `backend/services/` — logika data backend
+- `backend/data/herbs.js` — satu sumber data tanaman
+
+## Pengujian
+```bash
+npm test
+```
+Untuk build frontend:
+```bash
+npm run build
+```
+
+## Catatan autentikasi
+Login dan registrasi pada versi ini masih demo frontend. Data akun hanya disimpan di state aplikasi, bukan database, dan kata sandi tidak persisten. Jangan gunakan kata sandi asli. Untuk autentikasi nyata, dibutuhkan endpoint backend, hashing kata sandi, validasi server, dan sesi/token yang aman.
+
+## Catatan informasi herbal
+Informasi yang tersedia untuk edukasi dan tidak menggantikan diagnosis, konsultasi, atau pengobatan dari tenaga kesehatan.
